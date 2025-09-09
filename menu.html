@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[善元烤鱼店] - 在线点单</title>
+    <style>
+        /* CSS 样式，用于美化页面 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        header {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #fff;
+            border-bottom: 1px solid #ddd;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .menu-item {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: box-shadow 0.3s;
+        }
+        .menu-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .menu-item img {
+            max-width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .menu-item h3 {
+            margin: 10px 0 5px;
+            font-size: 1.1em;
+        }
+        .item-price {
+            color: #d9534f;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        .quantity-control {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .quantity-control button {
+            background-color: #337ab7;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            line-height: 25px;
+            cursor: pointer;
+        }
+        .quantity-control span {
+            margin: 0 15px;
+            font-size: 1.2em;
+            min-width: 20px;
+        }
+        .customer-info, .cart-summary {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+        .customer-info h2, .cart-summary h2 {
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .total-price {
+            text-align: right;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .total-price span {
+            color: #d9534f;
+        }
+        .submit-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .submit-button:hover {
+            background-color: #4cae4c;
+        }
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 25px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 10px;
+            position: relative;
+        }
+        .modal-close {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #order-summary-text {
+            white-space: pre-wrap; /* 保留换行和空格 */
+            font-size: 1.1em;
+            line-height: 1.6;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>[善元烤鱼城]</h1>
+            </header>
+
+        <main>
+            <div id="menu-grid" class="menu-grid">
+                </div>
+
+            <div class="customer-info">
+                <h2>顾客信息</h2>
+                <div class="form-group">
+                    <label for="address">送餐地址</label>
+                    <input type="text" id="address" placeholder="请输入您的详细地址">
+                </div>
+                <div class="form-group">
+                    <label for="phone">联系电话</label>
+                    <input type="tel" id="phone" placeholder="请输入您的联系电话">
+                </div>
+            </div>
+
+            <div class="cart-summary">
+                <h2>订单预览</h2>
+                <div id="cart-items">
+                    <p>您还没有选择任何菜品。</p>
+                </div>
+                <div class="total-price">
+                    总计: ¥<span id="total-price">0.00</span>
+                </div>
+                <button id="submit-order" class="submit-button">确认菜单，生成截图</button>
+            </div>
+        </main>
+    </div>
+
+    <div id="order-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>请截图此菜单发送给我们</h2>
+            <p>请长按或使用手机功能对下方菜单进行截图，然后发送给店员即可！</p>
+            <div id="order-summary-text"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 核心 JavaScript 代码 ---
+
+        // ======================= ↓↓↓ 你需要修改的地方 B ↓↓↓ ======================= -->
+        // 在这里填写你的菜单
+        // 格式: { id: 唯一编号, name: '菜品名称', price: 价格, image: '图片文件路径' }
+        // 注意：
+        // 1. id 不能重复。
+        // 2. price 是数字，不要加引号。
+        // 3. image 的路径，建议在index.html同级目录下创建一个images文件夹，把所有菜品图片放进去。
+        //    例如，图片叫 'kaorou.jpg'，放在images文件夹里，路径就写 'images/kaorou.jpg'。
+        const menuItems = [
+            { id: 1, name: '烤草鱼', price: 110, image: 'images/image1.png' },
+            { id: 2, name: '烤黑鱼', price: 120, image: 'images/image2.png' },
+            { id: 3, name: '蒜蓉/麻辣/十三香小龙虾', price: 110, image: 'images/image3.png' },
+            { id: 4, name: '烤鲫鱼', price: 35, image: 'images/image4.png' },
+            { id: 5, name: '烤秋刀鱼', price: 10, image: 'images/image5.png' },
+            { id: 6, name: '韭菜', price: 2, image: 'images/image6.png' },
+            { id: 7, name: '花菜', price: 2, image: 'images/image7.png' },
+            { id: 8, name: '白菜', price: 2, image: 'images/image8.png' },
+            { id: 9, name: '蒜苗', price: 2, image: 'images/image9.png' },
+            { id: 10, name: '四季豆', price: 2, image: 'images/image10.png' },
+            { id: 11, name: '包菜', price: 2, image: 'images/image11.png' },
+            { id: 12, name: '烤小把玉米', price: 6, image: 'images/image12.png' },
+            { id: 13, name: '烤大玉米', price: 10, image: 'images/image13.png' },
+            { id: 14, name: '蒜蓉茄子', price: 16, image: 'images/image14.png' },
+            { id: 15, name: '青椒', price: 5, image: 'images/image15.png' },
+            { id: 16, name: '蒜蓉香菇', price: 5, image: 'images/image16.png' },
+            { id: 17, name: '红柳羊肉', price: 7, image: 'images/image17.png' },
+            { id: 18, name: '羊肉', price: 5, image: 'images/image18.png' },
+            { id: 19, name: '羊腰', price: 6, image: 'images/image19.png' },
+            { id: 20, name: '小把羊肉串', price: 20, image: 'images/image20.png' },
+            { id: 21, name: '羊排', price: 23, image: 'images/image21.png' },
+            { id: 22, name: '五花肉包生菜', price: 30, image: 'images/image22.png' },
+            { id: 23, name: '五花肉', price: 4, image: 'images/image23.png' },
+            { id: 24, name: '猪脊肉', price: 7, image: 'images/image24.png' },
+            { id: 25, name: '青椒脆骨', price: 4, image: 'images/image25.png' },
+            { id: 26, name: '猪油边', price: 7, image: 'images/image26.png' },
+            { id: 27, name: '小把五花肉串', price: 20, image: 'images/image27.png' },
+            { id: 28, name: '牛肉', price: 4, image: 'images/image28.png' },
+            { id: 29, name: '红柳牛肉', price: 7, image: 'images/image29.png' },
+            { id: 30, name: '牛排肉', price: 6, image: 'images/image30.png' },
+            { id: 31, name: '小把牛肉串', price: 20, image: 'images/image31.png' },
+            { id: 32, name: '小把牛油串', price: 15, image: 'images/image32.png' },
+            { id: 33, name: '牛板筋', price: 3, image: 'images/image33.png' },
+            { id: 34, name: '牛百叶', price: 7, image: 'images/image34.png' },
+            { id: 35, name: '毛肚', price: 6, image: 'images/image35.png' },
+            { id: 36, name: '小肠', price: 6, image: 'images/image36.png' },
+            { id: 37, name: '鸡腿', price: 10, image: 'images/image37.png' },
+            { id: 38, name: '中翅', price: 10, image: 'images/image38.png' },
+            { id: 39, name: '前翅', price: 10, image: 'images/image39.png' },
+            { id: 40, name: '鸡爪', price: 5, image: 'images/image40.png' },
+            { id: 41, name: '鸡尖', price: 4, image: 'images/image41.png' },
+            { id: 42, name: '小把鸡肉串', price: 20, image: 'images/image42.png' },
+            { id: 43, name: '鸡胗', price: 4, image: 'images/image43.png' },
+            { id: 44, name: '掌中宝', price: 4, image: 'images/image44.png' },
+            { id: 45, name: '鸡皮', price: 3, image: 'images/image45.png' },
+            { id: 46, name: '大鸡肉串', price: 3, image: 'images/image46.png' },
+            { id: 47, name: '骨肉相连', price: 3, image: 'images/image47.png' },
+            { id: 48, name: '鸡柳', price: 3, image: 'images/image48.png' },
+            { id: 49, name: '烤鸡蛋', price: 15, image: 'images/image49.png' },
+            { id: 50, name: '烤大鱿鱼', price: 6, image: 'images/image50.png' },
+            { id: 51, name: '烤鱿鱼须', price: 5, image: 'images/image51.png' },
+            { id: 52, name: '烤小把鱿鱼须', price: 15, image: 'images/image52.png' },
+            { id: 53, name: '烤虾', price: 5, image: 'images/image53.png' },
+            { id: 54, name: '芥末鱼饼', price: 8, image: 'images/image54.png' },
+            { id: 55, name: '手撕鱿鱼', price: 16, image: 'images/image55.png' },
+            { id: 56, name: '烤比目鱼', price: 8, image: 'images/image56.png' },
+            { id: 57, name: '蒜蓉生蚝', price: 8, image: 'images/image57.png' },
+            { id: 58, name: '蒜蓉扇贝', price: 6, image: 'images/image58.png' },
+            { id: 59, name: '培根', price: 6, image: 'images/image59.png' },
+            { id: 60, name: '鸭血', price: 15, image: 'images/image60.png' },
+            { id: 61, name: '烤牛蛙', price: 13, image: 'images/image61.png' },
+            { id: 62, name: '小把鸭肠', price: 18, image: 'images/image62.png' },
+            { id: 63, name: '小把腊肠', price: 9, image: 'images/image63.png' },
+            { id: 64, name: '烤蚂蚱', price: 5, image: 'images/image64.png' },
+            { id: 65, name: '肉肠', price: 5, image: 'images/image65.png' },
+            { id: 66, name: '香肠', price: 3, image: 'images/image66.png' },
+            { id: 67, name: '火龙香肠', price: 3, image: 'images/image67.png' },
+            { id: 68, name: '光饼', price: 5, image: 'images/image68.png' },
+            { id: 69, name: '梅菜饼', price: 5, image: 'images/image69.png' },
+            { id: 70, name: '馒头', price: 2, image: 'images/image70.png' },
+            { id: 71, name: '面包', price: 5, image: 'images/image71.png' },
+            { id: 72, name: '豆干', price: 3, image: 'images/image72.png' },
+            { id: 73, name: '水豆腐', price: 3, image: 'images/image73.png' },
+            { id: 74, name: '面筋', price: 3, image: 'images/image74.png' },
+            { id: 75, name: '黄金糕', price: 3, image: 'images/image75.png' },
+            { id: 76, name: '南瓜饼', price: 3, image: 'images/image76.png' },
+            { id: 77, name: '白果', price: 2, image: 'images/image77.png' },
+            { id: 78, name: '糯米莲藕', price: 6, image: 'images/image78.png' },
+            { id: 79, name: '蟹肉棒', price: 2, image: 'images/image79.png' },
+            // 你可以继续在这里添加更多菜品...
+            // { id: 9, name: '新菜品', price: 99, image: 'images/new.jpg' },
+        ];
+        // ======================= ↑↑↑ 你需要修改的地方 B ↑↑↑ ======================= -->
+
+
+        // --- 下面的代码一般不需要修改 ---
+
+        const cart = {}; // 购物车对象，存储 { itemId: quantity }
+
+        const menuGrid = document.getElementById('menu-grid');
+        const cartItemsDiv = document.getElementById('cart-items');
+        const totalPriceSpan = document.getElementById('total-price');
+        const submitButton = document.getElementById('submit-order');
+        const modal = document.getElementById('order-modal');
+        const modalClose = document.querySelector('.modal-close');
+        const orderSummaryText = document.getElementById('order-summary-text');
+
+        // 1. 渲染菜单
+        function renderMenu() {
+            menuItems.forEach(item => {
+                const menuItemDiv = document.createElement('div');
+                menuItemDiv.className = 'menu-item';
+                menuItemDiv.innerHTML = `
+                    <img src="${item.image}" alt="${item.name}">
+                    <h3>${item.name}</h3>
+                    <div class="item-price">¥${item.price.toFixed(2)}</div>
+                    <div class="quantity-control">
+                        <button class="quantity-btn" data-id="${item.id}" data-change="-1">-</button>
+                        <span id="quantity-${item.id}">0</span>
+                        <button class="quantity-btn" data-id="${item.id}" data-change="1">+</button>
+                    </div>
+                `;
+                menuGrid.appendChild(menuItemDiv);
+            });
+        }
+
+        // 2. 更新购物车和数量显示
+        function updateCart(itemId, change) {
+            const currentQuantity = cart[itemId] || 0;
+            const newQuantity = currentQuantity + change;
+
+            if (newQuantity > 0) {
+                cart[itemId] = newQuantity;
+            } else {
+                delete cart[itemId];
+            }
+            
+            document.getElementById(`quantity-${itemId}`).textContent = cart[itemId] || 0;
+            updateSummary();
+        }
+
+        // 3. 更新订单预览和总价
+        function updateSummary() {
+            cartItemsDiv.innerHTML = '';
+            let total = 0;
+            const itemIds = Object.keys(cart);
+
+            if (itemIds.length === 0) {
+                cartItemsDiv.innerHTML = '<p>您还没有选择任何菜品。</p>';
+                totalPriceSpan.textContent = '0.00';
+                return;
+            }
+
+            itemIds.forEach(id => {
+                const menuItem = menuItems.find(item => item.id == id);
+                const quantity = cart[id];
+                const itemTotal = menuItem.price * quantity;
+                total += itemTotal;
+
+                const itemSummaryDiv = document.createElement('div');
+                itemSummaryDiv.innerHTML = `
+                    <p><strong>${menuItem.name}</strong> x ${quantity} = ¥${itemTotal.toFixed(2)}</p>
+                `;
+                cartItemsDiv.appendChild(itemSummaryDiv);
+            });
+
+            totalPriceSpan.textContent = total.toFixed(2);
+        }
+
+        // 4. 生成最终菜单截图
+        function generateOrderSummary() {
+            const address = document.getElementById('address').value;
+            const phone = document.getElementById('phone').value;
+
+            if (!address || !phone) {
+                alert('请填写送餐地址和联系电话！');
+                return;
+            }
+
+            if (Object.keys(cart).length === 0) {
+                alert('您还没有点任何菜品！');
+                return;
+            }
+
+            let summary = `--- 【${document.querySelector('h1').innerText}】 订单详情 ---\n\n`;
+            summary += `地址: ${address}\n`;
+            summary += `电话: ${phone}\n`;
+            summary += `------------------------------\n`;
+            
+            let total = 0;
+            Object.keys(cart).forEach(id => {
+                const menuItem = menuItems.find(item => item.id == id);
+                const quantity = cart[id];
+                summary += `${menuItem.name} x ${quantity}\n`;
+                total += menuItem.price * quantity;
+            });
+
+            summary += `------------------------------\n`;
+            summary += `总计: ¥${total.toFixed(2)}\n\n`;
+            summary += `下单时间: ${new Date().toLocaleString('zh-CN')}`;
+
+            orderSummaryText.textContent = summary;
+            modal.style.display = 'block';
+        }
+
+        // 事件监听
+        menuGrid.addEventListener('click', (e) => {
+            if (e.target.classList.contains('quantity-btn')) {
+                const itemId = parseInt(e.target.dataset.id);
+                const change = parseInt(e.target.dataset.change);
+                updateCart(itemId, change);
+            }
+        });
+
+        submitButton.addEventListener('click', generateOrderSummary);
+        modalClose.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        window.addEventListener('click', (e) => {
+            if (e.target == modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // 初始化页面
+        renderMenu();
+    </script>
+
+</body>
+</html>
